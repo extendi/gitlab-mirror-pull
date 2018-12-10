@@ -110,11 +110,12 @@ class GitlabMirrorPullTest < Minitest::Test
     Process.kill("SIGKILL", sinatra)
   end
 
-  def post_request
+  def post_request(options = {})
     # Create the HTTP objects
     http = Net::HTTP.new("localhost", "8088")
     header = {'Content-Type': 'text/json'}
-    request = Net::HTTP::Post.new("/commit", header)
+    path = options.fetch(:path) { '/commit' }
+    request = Net::HTTP::Post.new(path, header)
     request.body = '
       {
         "object_kind": "push",
