@@ -99,8 +99,9 @@ class GitlabMirrorPullTest < Minitest::Test
     assert_equal(branch, false, "Expect false when repo pipeline trigger is not configured")
   end
 
-  def with_server
-    sinatra = spawn("./bin/gitlab-mirror-pull -r server -c tests/config.tests.yml")
+  def with_server(options = {})
+    config_path = options.fetch(:config_path) { 'tests/config.tests.yml' }
+    sinatra = spawn("./bin/gitlab-mirror-pull -r server -c #{config_path}")
     Process.detach(sinatra)
     sleep 5
 
