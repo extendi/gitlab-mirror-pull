@@ -149,6 +149,20 @@ class GitlabMirrorPullTest < Minitest::Test
     end
   end
 
+  def test_webhook_auth
+    with_server(config_path: 'tests/config.tests.gh.yml') do
+      # Auth success
+      response = post_request(path: '/commit?secret=secret123')
+      assert_equal('200', response.code, 'Expect OK')
+      # Auth failure
+      response = post_request(path: '/commit?secret=wrongsecret')
+      assert_equal('403', response.code, 'Expect Unauthorized')
+      # No auth
+      response = post_request(path: '/commit')
+      assert_equal('403', response.code, 'Expect Unauthorized')
+    end
+  end
+
   def teardown
     FileUtils.remove_dir(File.join(File.dirname(__FILE__), "../fixtures/from_repos"))
     FileUtils.remove_dir(File.join(File.dirname(__FILE__), "../fixtures/to_repos"))
