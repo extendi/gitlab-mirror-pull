@@ -70,8 +70,8 @@ if options[:run] == 'server'
   set :run, true
 
   post '/commit' do
-    gitlab_json = MultiJson.load(request.body.read)
-    repo_path = File.join(config['git']['repos'], gitlab_json['project']['namespace'].downcase, gitlab_json['project']['name'].downcase + ".git")
+    payload_json = MultiJson.load(request.body.read)
+    repo_path = pull.repo_path(payload_json)
 
     if File.exists?(repo_path)
       pull.fetch_repositories([repo_path])
