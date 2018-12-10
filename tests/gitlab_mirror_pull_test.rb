@@ -110,13 +110,8 @@ class GitlabMirrorPullTest < Minitest::Test
     Process.kill("SIGKILL", sinatra)
   end
 
-  def post_request(options = {})
-    # Create the HTTP objects
-    http = Net::HTTP.new("localhost", "8088")
-    header = {'Content-Type': 'text/json'}
-    path = options.fetch(:path) { '/commit' }
-    request = Net::HTTP::Post.new(path, header)
-    request.body = '
+  def gitlab_payload
+    '
       {
         "object_kind": "push",
         "project_id": 15,
@@ -139,6 +134,29 @@ class GitlabMirrorPullTest < Minitest::Test
         }
       }
     '
+  end
+
+  def github_payload
+    '
+      {
+        "repository": {
+          "name": "repo_1",
+          "full_name": "user_group/repo_1",
+          "owner": {
+            "login": "user_group"
+          }
+        }
+      }
+    '
+  end
+
+  def post_request(options = {})
+    # Create the HTTP objects
+    http = Net::HTTP.new("localhost", "8088")
+    header = {'Content-Type': 'text/json'}
+    path = options.fetch(:path) { '/commit' }
+    request = Net::HTTP::Post.new(path, header)
+    request.body = options.fetch(:payload) { gitlab_payload }
     http.request(request)
   end
 
@@ -160,6 +178,13 @@ class GitlabMirrorPullTest < Minitest::Test
       # No auth
       response = post_request(path: '/commit')
       assert_equal('403', response.code, 'Expect Unauthorized')
+    end
+  end
+
+  def test_webhook_from_gh
+    with_server do
+      response = post_request(payload: github_payload)
+      assert_equal('200', response.code, 'Expect Success')
     end
   end
 

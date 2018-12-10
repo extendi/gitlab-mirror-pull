@@ -148,4 +148,23 @@ class GitlabMirrorPull
 
     @return_repos
   end
+
+  # Build gitlab repo path from webhook payload
+  #
+  # @param [Hash] payload received by the webhook
+  # @return [String] path of the repository
+  def repo_path(payload)
+    type = payload.key?('project') ? :gitlab : :github
+    projects_dir = config['git']['repos']
+    case type
+    when :gitlab
+      namespace = payload['project']['namespace']
+      repo_name = payload['project']['name']
+    when :github
+      namespace = payload['repository']['owner']['login']
+      repo_name = payload['repository']['name']
+    end
+
+    File.join(projects_dir, namespace, repo_name + '.git')
+  end
 end
