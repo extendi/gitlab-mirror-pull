@@ -99,8 +99,9 @@ class GitlabMirrorPullTest < Minitest::Test
     assert_equal(branch, false, "Expect false when repo pipeline trigger is not configured")
   end
 
-  def with_server
-    sinatra = spawn("./bin/gitlab-mirror-pull -r server -c tests/config.tests.yml")
+  def with_server(options = {})
+    config_path = options.fetch(:config_path) { 'tests/config.tests.yml' }
+    sinatra = spawn("./bin/gitlab-mirror-pull -r server -c #{config_path}")
     Process.detach(sinatra)
     sleep 5
 
@@ -109,11 +110,12 @@ class GitlabMirrorPullTest < Minitest::Test
     Process.kill("SIGKILL", sinatra)
   end
 
-  def post_request
+  def post_request(options = {})
     # Create the HTTP objects
     http = Net::HTTP.new("localhost", "8088")
     header = {'Content-Type': 'text/json'}
-    request = Net::HTTP::Post.new("/commit", header)
+    path = options.fetch(:path) { '/commit' }
+    request = Net::HTTP::Post.new(path, header)
     request.body = '
       {
         "object_kind": "push",
@@ -144,6 +146,20 @@ class GitlabMirrorPullTest < Minitest::Test
     with_server do
       response = post_request
       assert_equal(response.code, "200", "Expect status code 200")
+    end
+  end
+
+  def test_webhook_auth
+    with_server(config_path: 'tests/config.tests.gh.yml') do
+      # Auth success
+      response = post_request(path: '/commit?secret=secret123')
+      assert_equal('200', response.code, 'Expect OK')
+      # Auth failure
+      response = post_request(path: '/commit?secret=wrongsecret')
+      assert_equal('403', response.code, 'Expect Unauthorized')
+      # No auth
+      response = post_request(path: '/commit')
+      assert_equal('403', response.code, 'Expect Unauthorized')
     end
   end
 

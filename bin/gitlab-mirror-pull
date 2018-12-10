@@ -69,7 +69,13 @@ if options[:run] == 'server'
   # Set to true to run sinatra webserver in production
   set :run, true
 
+  secret = config['server']['secret']
+
   post '/commit' do
+
+    authenticated = params['secret'] == secret
+    halt 403 unless authenticated
+
     gitlab_json = MultiJson.load(request.body.read)
     repo_path = File.join(config['git']['repos'], gitlab_json['project']['namespace'].downcase, gitlab_json['project']['name'].downcase + ".git")
 
