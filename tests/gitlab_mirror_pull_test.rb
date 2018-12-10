@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'minitest/autorun'
 require 'fileutils'
 require 'net/http'
@@ -97,13 +99,17 @@ class GitlabMirrorPullTest < Minitest::Test
     assert_equal(branch, false, "Expect false when repo pipeline trigger is not configured")
   end
 
-  def test_webhook
-
+  def with_server
     sinatra = spawn("./bin/gitlab-mirror-pull -r server -c tests/config.tests.yml")
     Process.detach(sinatra)
-
     sleep 5
 
+    yield
+
+    Process.kill("SIGKILL", sinatra)
+  end
+
+  def post_request
     # Create the HTTP objects
     http = Net::HTTP.new("localhost", "8088")
     header = {'Content-Type': 'text/json'}
@@ -131,9 +137,14 @@ class GitlabMirrorPullTest < Minitest::Test
         }
       }
     '
-    response = http.request(request)
-    assert_equal(response.code, "200", "Expect status code 200")
-    Process.kill("SIGKILL", sinatra)
+    http.request(request)
+  end
+
+  def test_webhook
+    with_server do
+      response = post_request
+      assert_equal(response.code, "200", "Expect status code 200")
+    end
   end
 
   def teardown
